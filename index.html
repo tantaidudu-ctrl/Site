@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Vòng Quay Acc LQ</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',Roboto,sans-serif}
+body{min-height:100vh;background:radial-gradient(circle at 20% 30%,#0b1120,#020617);display:flex;align-items:center;justify-content:center;padding:16px;color:#f8fafc}
+.card{background:rgba(15,23,42,.85);backdrop-filter:blur(20px);border:1px solid rgba(251,191,36,.25);border-radius:28px;box-shadow:0 30px 60px -20px #000;padding:26px 20px;width:100%;max-width:480px}
+h1{font-size:1.6rem;font-weight:800;text-align:center;background:linear-gradient(135deg,#fbbf24,#f59e0b,#fcd34d);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.sub{text-align:center;color:#94a3b8;font-size:.85rem;margin-bottom:18px}
+.wheel-outer{position:relative;width:270px;height:270px;margin:0 auto 12px}
+canvas{width:100%;height:100%;border-radius:50%;box-shadow:0 0 50px rgba(251,191,36,.3),0 0 0 8px #0f172a,0 0 0 10px #fbbf24}
+.pointer{position:absolute;top:-22px;left:50%;transform:translateX(-50%);width:0;height:0;border-left:20px solid transparent;border-right:20px solid transparent;border-top:40px solid #fbbf24;filter:drop-shadow(0 6px 12px rgba(251,191,36,.5));z-index:10}
+.pointer::after{content:'';position:absolute;top:-48px;left:-7px;width:14px;height:14px;background:#fbbf24;border-radius:50%;box-shadow:0 0 16px #fbbf24}
+.lever-area{margin:14px 0 8px;display:flex;flex-direction:column;align-items:center}
+.lever{width:170px;height:52px;background:linear-gradient(180deg,#1e293b,#0f172a);border-radius:40px;border:2px solid #475569;position:relative;cursor:pointer;box-shadow:0 12px 20px -8px #000,0 0 0 1px #fbbf24 inset}
+.knob{position:absolute;top:5px;left:7px;width:40px;height:40px;background:radial-gradient(circle at 35% 35%,#fef3c7,#d97706);border-radius:50%;border:2px solid #fbbf24;box-shadow:0 6px 12px #000,0 0 24px rgba(251,191,36,.6);transition:left .25s cubic-bezier(.34,1.56,.64,1)}
+.lever.pulled .knob{left:121px}
+.lever-hint{font-size:.8rem;color:#64748b;margin-top:6px;letter-spacing:1px}
+.status-bar{background:rgba(251,191,36,.08);border:1px solid rgba(251,191,36,.2);border-radius:14px;padding:10px 14px;font-size:.82rem;text-align:center;color:#cbd5e1;margin-top:12px}
+.status-bar .hl{color:#fbbf24;font-weight:700}
+.dots{font-size:1.3rem;color:#fbbf24;cursor:pointer;padding:0 4px}
+.result-box{background:linear-gradient(135deg,rgba(251,191,36,.12),rgba(251,191,36,.04));border:1.5px solid #fbbf24;border-radius:20px;padding:18px;margin-top:18px;display:none;animation:slideUp .5s ease}
+.result-box.show{display:block}
+@keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:translateY(0)}}
+.res-title{color:#fbbf24;font-weight:800;font-size:1.05rem;margin-bottom:10px}
+.acc-detail{background:#020617;border-radius:14px;padding:14px;font-family:'Courier New',monospace;font-size:.78rem;line-height:1.7;color:#e2e8f0;word-break:break-word;white-space:pre-wrap;border-left:4px solid #fbbf24;max-height:260px;overflow-y:auto}
+.acc-detail .k{color:#fbbf24;font-weight:700}
+.admin-bar{display:flex;gap:8px;margin-top:12px}
+.admin-bar input{flex:1;padding:10px 14px;background:rgba(2,6,23,.9);border:1px solid #334155;border-radius:12px;color:#f1f5f9;font-size:.85rem;outline:none}
+.admin-bar input:focus{border-color:#fbbf24}
+.admin-bar button{padding:10px 16px;background:linear-gradient(135deg,#334155,#1e293b);border:1px solid #475569;border-radius:12px;color:#cbd5e1;font-weight:700;cursor:pointer;font-size:.85rem}
+.admin-bar button.active{background:linear-gradient(135deg,#fbbf24,#f59e0b);color:#0f172a}
+.hidden{display:none!important}
+</style>
+</head>
+<body>
+<div class="card">
+<h1>🎰 VÒNG QUAY ACC LQ</h1>
+<p class="sub">Kéo cần gạt để nhận tài khoản ngẫu nhiên</p>
+<div class="wheel-outer">
+<div class="pointer"></div>
+<canvas id="wheel" width="560" height="560"></canvas>
+</div>
+<div class="lever-area">
+<div class="lever" id="lever"><div class="knob"></div></div>
+<div class="lever-hint">KÉO CẦN</div>
+</div>
+<div class="status-bar" id="statusBar">
+Lượt quay còn lại: <span class="hl" id="remainCount">1</span> <span class="dots" onclick="toggleAdmin()">⋯</span>
+</div>
+<div class="admin-bar hidden" id="adminBar">
+<input type="password" id="adminKey" placeholder="Nhập key admin...">
+<button id="adminBtn" onclick="checkAdmin()">Xác nhận</button>
+</div>
+<div class="result-box" id="resultBox">
+<div class="res-title">🏆 CHÚC MỪNG! BẠN ĐÃ TRÚNG</div>
+<div class="acc-detail" id="accDetail"></div>
+</div>
+</div>
+<script>
+const A=[
+{u:"truongymaizz",p:"19102004t",n:"Hitontrum!?",l:30,r:"K.Cương IV ✮",h:107,s:300,ss:9,sk:20,sc:15,o:4,st:"Acc Full"},
+{u:"bap2009",p:"taokobiet1",n:"xóatênanhđi\"",l:30,r:"K.Cương II ✮",h:105,s:287,ss:11,sk:23,sc:31,o:10,st:"Acc Full"},
+{u:"thieumau1992",p:"xitrum91",n:"VănThường*.^",l:30,r:"K.Cương III ✮",h:107,s:278,ss:2,sk:20,sc:19,o:9,st:"Acc Full"},
+{u:"cnznskwh62738",p:"phuthanh95",n:"VN•ρнúムυуêи",l:30,r:"K.Cương III ✮",h:106,s:246,ss:7,sk:14,sc:24,o:3,st:"Acc Full"},
+{u:"viet2004dzdz",p:"viet2004dz",n:"FH-KyNoNgao",l:30,r:"B.Kim IV ✮",h:103,s:245,ss:4,sk:19,sc:17,o:6,st:"Acc Full"}
+];
+const AK='201455Tr',CD=172800000,SK='lq_spin_v3';
+function canSpin(){const l=localStorage.getItem(SK);if(!l)return true;return(Date.now()-parseInt(l,10))>=CD}
+function setSpin(){localStorage.setItem(SK,Date.now().toString())}
+function remainText(){const l=localStorage.getItem(SK);if(!l)return'1';const d=Date.now()-parseInt(l,10);if(d>=CD)return'1';const r=CD-d,h=Math.floor(r/3600000),m=Math.floor((r%3600000)/60000);return'0 (còn '+h+'h '+m+'p)'}
+let admin=false;
+function toggleAdmin(){document.getElementById('adminBar').classList.toggle('hidden')}
+function checkAdmin(){if(document.getElementById('adminKey').value.trim()===AK){admin=true;document.getElementById('adminBtn').classList.add('active');document.getElementById('adminBtn').textContent='✓ Admin';document.getElementById('adminKey').value='';document.getElementById('adminKey').placeholder='Đã xác thực';document.getElementById('adminKey').disabled=true;document.getElementById('statusBar').innerHTML='Chế độ Admin: <span class="hl">Không giới hạn lượt quay</span>'}else{alert('Key admin không đúng!');document.getElementById('adminKey').value=''}}
+const ITEMS=A.map(a=>a.u);
+const CL=['#fbbf24','#f59e0b','#d97706','#b45309','#92400e','#78350f','#a16207','#ca8a04','#eab308','#facc15'];
+let cv,ct,rot=0,spin=false,won=false;
+function draw(){const s=cv.width,c=s/2,r=c-24,n=ITEMS.length,arc=(Math.PI*2)/n;ct.clearRect(0,0,s,s);ct.beginPath();ct.arc(c,c,r+8,0,Math.PI*2);ct.fillStyle='#0f172a';ct.fill();for(let i=0;i<n;i++){const st=i*arc+rot,en=st+arc;ct.beginPath();ct.moveTo(c,c);ct.arc(c,c,r,st,en);ct.closePath();ct.fillStyle=CL[i%CL.length];ct.fill();ct.strokeStyle='#1e293b';ct.lineWidth=3;ct.stroke();ct.save();ct.translate(c,c);ct.rotate(st+arc/2);ct.textAlign='right';ct.fillStyle='#0f172a';ct.font='bold 18px "Segoe UI",sans-serif';ct.fillText(ITEMS[i],r-20,6);ct.restore()}ct.beginPath();ct.arc(c,c,46,0,Math.PI*2);ct.fillStyle='#020617';ct.fill();ct.strokeStyle='#fbbf24';ct.lineWidth=5;ct.stroke();ct.fillStyle='#fbbf24';ct.font='32px sans-serif';ct.textAlign='center';ct.textBaseline='middle';ct.fillText('🎰',c,c)}
+function init(){cv=document.getElementById('wheel');ct=cv.getContext('2d');draw();updateUI();document.getElementById('lever').addEventListener('click',function(){if(spin)return;if(!admin&&!canSpin()){alert('Bạn đã hết lượt! Vui lòng quay lại sau 2 ngày.');return}if(won&&!admin){alert('Bạn đã quay rồi! Đợi 2 ngày nữa nhé.');return}this.classList.add('pulled');setTimeout(()=>this.classList.remove('pulled'),250);go()})}
+function go(){if(spin)return;spin=true;document.getElementById('lever').style.pointerEvents='none';const sp=6+Math.random()*4,ex=Math.random()*Math.PI*2,tg=rot+sp*Math.PI*2+ex,st=performance.now(),du=4000,sr=rot;function an(now){const el=now-st,p=Math.min(el/du,1),e=1-Math.pow(1-p,3);rot=sr+(tg-sr)*e;draw();if(p<1)requestAnimationFrame(an);else{spin=false;document.getElementById('lever').style.pointerEvents='auto';won=true;if(!admin)setSpin();updateUI();show()}}requestAnimationFrame(an)}
+function show(){const n=ITEMS.length,arc=(Math.PI*2)/n;let r=rot%(Math.PI*2);if(r<0)r+=Math.PI*2;const pp=(3*Math.PI/2-r+Math.PI*2)%(Math.PI*2),i=Math.floor(pp/arc)%n,a=A[i];if(!a)return;document.getElementById('accDetail').innerHTML='<span class="k">👤 Tài khoản:</span> '+a.u+'\n<span class="k">🔑 Mật khẩu:</span> '+a.p+'\n<span class="k">📛 Tên NV:</span> '+a.n+'\n<span class="k">⭐ Level:</span> '+a.l+'\n<span class="k">🏅 Rank:</span> '+a.r+'\n<span class="k">🛡️ Tướng:</span> '+a.h+'\n<span class="k">👕 Skin:</span> '+a.s+'\n<span class="k">💎 SS:</span> '+a.ss+'\n<span class="k">🎁 SUKIEN:</span> '+a.sk+'\n<span class="k">🎀 SC:</span> '+a.sc+'\n<span class="k">✨ Other:</span> '+a.o+'\n<span class="k">📌 Tình trạng:</span> '+a.st;document.getElementById('resultBox').classList.add('show')}
+function updateUI(){document.getElementById('remainCount').textContent=admin?'∞':remainText()}
+init();
+</script>
+</body>
+</html>
